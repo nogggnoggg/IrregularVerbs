@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>英文不規則動詞挑戰 - 專業流暢版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+        body { 
+            font-family: 'Inter', 'PingFang TC', 'Microsoft JhengHei', sans-serif; 
+            background-color: #f8fafc;
+        }
+        .input-focus:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(165, 180, 252, 0.5); }
+        
+        /* 針對行動裝置優化：鍵盤彈出時避免內容被推擠太嚴重 */
+        @media (max-width: 768px) {
+            #app-container { align-items: flex-start; padding-top: 1rem; }
+            #current-base { font-size: 2.5rem; }
+            .game-card { border-radius: 0; box-shadow: none; min-height: 100vh; }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div id="app-container" class="flex justify-center md:items-center min-h-screen p-0 md:p-4">
+        <div id="app" class="game-card w-full max-w-xl bg-white md:rounded-3xl md:shadow-2xl overflow-hidden flex flex-col">
+            
+            <!-- 模式選擇畫面 -->
+            <div id="start-screen" class="p-8">
+                <h1 class="text-3xl font-black text-slate-800 mb-2 text-center uppercase tracking-tight">Irregular Verbs</h1>
+                <p class="text-slate-500 text-center mb-10 font-medium">不規則動詞三態練習遊戲</p>
+                
+                <div class="space-y-4">
+                    <button onclick="startFullGame()" class="w-full group p-6 border-2 border-slate-100 hover:border-indigo-500 rounded-2xl transition-all text-left flex items-center bg-white hover:bg-indigo-50">
+                        <div class="bg-indigo-100 text-indigo-600 p-3 rounded-xl mr-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                        <div>
+                            <div class="font-bold text-slate-800">全面挑戰模式</div>
+                            <div class="text-sm text-slate-500">練習全數 67 個動詞</div>
+                        </div>
+                    </button>
+
+                    <div class="p-6 border-2 border-slate-100 rounded-2xl bg-slate-50">
+                        <div class="flex items-center mb-4">
+                            <div class="bg-emerald-100 text-emerald-600 p-2 rounded-lg mr-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </div>
+                            <div class="font-bold text-slate-800">自訂複習模式</div>
+                        </div>
+                        <textarea id="custom-input" rows="2" class="w-full p-4 border border-slate-200 rounded-xl mb-4 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" placeholder="貼上或輸入想練習的原型動詞..."></textarea>
+                        <button onclick="startCustomGame()" class="w-full bg-slate-800 hover:bg-black text-white font-bold py-4 rounded-xl transition-all shadow-lg">
+                            開始練習
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 遊戲進行畫面 -->
+            <div id="game-screen" class="hidden flex flex-col p-6 md:p-10">
+                <div class="flex justify-between items-center mb-8">
+                    <button onclick="quitToHome()" class="text-slate-400 hover:text-slate-800 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M15 19l-7-7 7-7"></path></svg>
+                    </button>
+                    <div class="flex space-x-6 text-center">
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progress</p>
+                            <p id="progress-val" class="text-sm font-bold text-slate-700">0 / 0</p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Correct</p>
+                            <p id="score-text" class="text-sm font-bold text-emerald-600">0</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-8 text-center">
+                    <h2 class="text-xs font-black text-indigo-500 uppercase tracking-[0.3em] mb-2">Base Verb</h2>
+                    <div id="current-base" class="text-5xl md:text-7xl font-black text-slate-900 tracking-tight">stand</div>
+                </div>
+
+                <div class="space-y-5">
+                    <div class="relative">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest absolute left-4 top-2">Simple Past</label>
+                        <input type="text" id="input-past" tabindex="1" autocomplete="off" autocorrect="off" autocapitalize="off" 
+                               class="w-full pt-8 pb-4 px-4 border-2 border-slate-100 rounded-2xl input-focus text-xl font-bold transition-all" placeholder="...">
+                    </div>
+                    <div class="relative">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest absolute left-4 top-2">Past Participle</label>
+                        <input type="text" id="input-pp" tabindex="2" autocomplete="off" autocorrect="off" autocapitalize="off" 
+                               class="w-full pt-8 pb-4 px-4 border-2 border-slate-100 rounded-2xl input-focus text-xl font-bold transition-all" placeholder="...">
+                    </div>
+                    
+                    <button id="submit-btn" onclick="handleMainAction()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-2xl transition-all shadow-xl shadow-indigo-100 text-lg uppercase tracking-wider">
+                        Submit (Enter)
+                    </button>
+                </div>
+
+                <div id="feedback" class="mt-8 hidden p-5 rounded-2xl text-center font-bold animate-in fade-in zoom-in duration-300"></div>
+            </div>
+
+            <!-- 結果畫面 -->
+            <div id="result-screen" class="hidden p-8 flex flex-col items-center">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-black text-slate-800 mb-6">測驗結束</h2>
+                    <div id="final-score-circle" class="w-32 h-32 rounded-full border-8 border-indigo-500 flex flex-col items-center justify-center mb-4 mx-auto">
+                        <span id="final-percentage" class="text-3xl font-black text-indigo-600">0%</span>
+                    </div>
+                    <p id="final-score-text" class="text-slate-500 font-bold">答對 0 題 / 共 0 題</p>
+                </div>
+                
+                <div id="wrong-answers-section" class="w-full hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-black text-red-500 text-sm uppercase tracking-widest">複習清單</h3>
+                        <button onclick="copyMissedVerbs()" class="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 py-2 px-4 rounded-full transition-all">
+                            複製錯誤單字
+                        </button>
+                    </div>
+                    <div class="max-h-60 overflow-y-auto rounded-2xl border border-slate-50">
+                        <table class="w-full text-left">
+                            <tbody id="wrong-list" class="divide-y divide-slate-50"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <button onclick="quitToHome()" class="w-full mt-10 bg-slate-900 text-white font-black py-5 rounded-2xl shadow-xl transition-all hover:scale-[1.02]">
+                    返回首頁
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示框 -->
+    <div id="toast" class="fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-slate-900 text-white px-8 py-4 rounded-full text-sm font-bold opacity-0 transition-all pointer-events-none z-50">
+        已複製到剪貼簿
+    </div>
+
+    <script>
+        const rawData = {
+            "AAA": [
+                { "base": "let", "past": "let", "past_participle": "let" },
+                { "base": "cut", "past": "cut", "past_participle": "cut" },
+                { "base": "put", "past": "put", "past_participle": "put" },
+                { "base": "hit", "past": "hit", "past_participle": "hit" },
+                { "base": "hurt", "past": "hurt", "past_participle": "hurt" },
+                { "base": "cost", "past": "cost", "past_participle": "cost" },
+                { "base": "read", "past": "read", "past_participle": "read" }
+            ],
+            "ABA": [
+                { "base": "come", "past": "came", "past_participle": "come" },
+                { "base": "become", "past": "became", "past_participle": "become" },
+                { "base": "run", "past": "ran", "past_participle": "run" }
+            ],
+            "ABC": [
+                { "base": "sing", "past": "sang", "past_participle": "sung" },
+                { "base": "begin", "past": "began", "past_participle": "begun" },
+                { "base": "drink", "past": "drank", "past_participle": "drunk" },
+                { "base": "swim", "past": "swam", "past_participle": "swum" },
+                { "base": "drive", "past": "drove", "past_participle": "driven" },
+                { "base": "do", "past": "did", "past_participle": "done" },
+                { "base": "bite", "past": "bit", "past_participle": "bitten" },
+                { "base": "hide", "past": "hid", "past_participle": "hidden" },
+                { "base": "ride", "past": "rode", "past_participle": "ridden" },
+                { "base": "write", "past": "wrote", "past_participle": "written" },
+                { "base": "break", "past": "broke", "past_participle": "broken" },
+                { "base": "fall", "past": "fell", "past_participle": "fallen" },
+                { "base": "steal", "past": "stole", "past_participle": "stolen" },
+                { "base": "speak", "past": "spoke", "past_participle": "spoken" },
+                { "base": "take", "past": "took", "past_participle": "taken" },
+                { "base": "choose", "past": "chose", "past_participle": "chosen" },
+                { "base": "shake", "past": "shook", "past_participle": "shaken" },
+                { "base": "eat", "past": "ate", "past_participle": "eaten" },
+                { "base": "give", "past": "gave", "past_participle": "given" },
+                { "base": "forgive", "past": "forgave", "past_participle": "forgiven" },
+                { "base": "fly", "past": "flew", "past_participle": "flown" },
+                { "base": "blow", "past": "blew", "past_participle": "blown" },
+                { "base": "grow", "past": "grew", "past_participle": "grown" },
+                { "base": "throw", "past": "threw", "past_participle": "thrown" },
+                { "base": "know", "past": "knew", "past_participle": "known" },
+                { "base": "draw", "past": "drew", "past_participle": "drawn" },
+                { "base": "get", "past": "got", "past_participle": "gotten" },
+                { "base": "forget", "past": "forgot", "past_participle": "forgotten" },
+                { "base": "see", "past": "saw", "past_participle": "seen" },
+                { "base": "show", "past": "showed", "past_participle": "shown" }
+            ],
+            "Same_Past_and_PastParticiple": [
+                { "base": "learn", "past": "learned", "past_participle": "learned" },
+                { "base": "buy", "past": "bought", "past_participle": "bought" },
+                { "base": "bring", "past": "brought", "past_participle": "brought" },
+                { "base": "fight", "past": "fought", "past_participle": "fought" },
+                { "base": "catch", "past": "caught", "past_participle": "caught" },
+                { "base": "teach", "past": "taught", "past_participle": "taught" },
+                { "base": "stand", "past": "stood", "past_participle": "stood" },
+                { "base": "understand", "past": "understood", "past_participle": "understood" },
+                { "base": "say", "past": "said", "past_participle": "said" },
+                { "base": "pay", "past": "paid", "past_participle": "paid" },
+                { "base": "sell", "past": "sold", "past_participle": "sold" },
+                { "base": "tell", "past": "told", "past_participle": "told" },
+                { "base": "build", "past": "built", "past_participle": "built" },
+                { "base": "feel", "past": "felt", "past_participle": "felt" },
+                { "base": "sleep", "past": "slept", "past_participle": "slept" },
+                { "base": "keep", "past": "kept", "past_participle": "kept" },
+                { "base": "leave", "past": "left", "past_participle": "left" },
+                { "base": "send", "past": "sent", "past_participle": "sent" },
+                { "base": "spend", "past": "spent", "past_participle": "spent" },
+                { "base": "lose", "past": "lost", "past_participle": "lost" },
+                { "base": "hold", "past": "held", "past_participle": "held" },
+                { "base": "hear", "past": "heard", "past_participle": "heard" },
+                { "base": "have", "past": "had", "past_participle": "had" },
+                { "base": "make", "past": "made", "past_participle": "made" },
+                { "base": "find", "past": "found", "past_participle": "found" },
+                { "base": "win", "past": "won", "past_participle": "won" },
+                { "base": "meet", "past": "met", "past_participle": "met" }
+            ]
+        };
+
+        const verbMap = {};
+        Object.values(rawData).forEach(group => {
+            group.forEach(v => { verbMap[v.base.toLowerCase()] = v; });
+        });
+
+        let questions = [];
+        let currentIndex = 0;
+        let score = 0;
+        let wrongAnswers = [];
+        let isAnswering = true; // true = 正在作答, false = 正在看回饋
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function startFullGame() {
+            questions = shuffle([...Object.values(verbMap)]);
+            initGame();
+        }
+
+        function startCustomGame() {
+            const input = document.getElementById('custom-input').value;
+            const words = input.toLowerCase().split(/[\s,，\n]+/).filter(w => w.trim() !== "");
+            const selected = words.map(w => verbMap[w]).filter(v => v !== undefined);
+            const uniqueSelected = [...new Set(selected)];
+
+            if (uniqueSelected.length === 0) return;
+            questions = shuffle(uniqueSelected);
+            initGame();
+        }
+
+        function initGame() {
+            currentIndex = 0; score = 0; wrongAnswers = [];
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('game-screen').classList.remove('hidden');
+            showQuestion();
+        }
+
+        function quitToHome() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+            document.getElementById('custom-input').value = '';
+        }
+
+        function showQuestion() {
+            isAnswering = true;
+            const current = questions[currentIndex];
+            document.getElementById('current-base').textContent = current.base;
+            document.getElementById('progress-val').textContent = `${currentIndex + 1} / ${questions.length}`;
+            document.getElementById('score-text').textContent = score;
+            
+            const p = document.getElementById('input-past');
+            const pp = document.getElementById('input-pp');
+            p.value = ''; pp.value = '';
+            p.classList.remove('border-emerald-500', 'border-red-500', 'bg-emerald-50', 'bg-red-50');
+            pp.classList.remove('border-emerald-500', 'border-red-500', 'bg-emerald-50', 'bg-red-50');
+            
+            document.getElementById('feedback').classList.add('hidden');
+            document.getElementById('submit-btn').textContent = "Submit (Enter)";
+            document.getElementById('submit-btn').classList.replace('bg-emerald-600', 'bg-indigo-600');
+            
+            p.focus();
+        }
+
+        // 核心 Enter 跳轉與提交邏輯
+        function handleMainAction() {
+            if (isAnswering) {
+                checkAnswer();
+            } else {
+                nextQuestion();
+            }
+        }
+
+        function checkAnswer() {
+            const current = questions[currentIndex];
+            const p = document.getElementById('input-past');
+            const pp = document.getElementById('input-pp');
+            const f = document.getElementById('feedback');
+            const btn = document.getElementById('submit-btn');
+
+            const valP = p.value.trim().toLowerCase();
+            const valPP = pp.value.trim().toLowerCase();
+            
+            const okP = valP === current.past.toLowerCase();
+            const okPP = valPP === current.past_participle.toLowerCase();
+
+            if (okP && okPP) {
+                score++;
+                f.textContent = "Great! 答對了";
+                f.className = "mt-8 p-5 rounded-2xl text-center font-black bg-emerald-50 text-emerald-600 text-lg border-2 border-emerald-100";
+                p.classList.add('border-emerald-500', 'bg-emerald-50');
+                pp.classList.add('border-emerald-500', 'bg-emerald-50');
+            } else {
+                wrongAnswers.push(current);
+                f.innerHTML = `Oops! 答錯了<br><span class='text-xs font-bold opacity-70'>正確答案：</span><br>\${current.past} - \${current.past_participle}`;
+                f.className = "mt-8 p-5 rounded-2xl text-center font-black bg-red-50 text-red-600 text-lg border-2 border-red-100";
+                if (!okP) p.classList.add('border-red-500', 'bg-red-50');
+                if (!okPP) pp.classList.add('border-red-500', 'bg-red-50');
+            }
+
+            f.classList.remove('hidden');
+            btn.textContent = "Next (Enter)";
+            btn.classList.replace('bg-indigo-600', 'bg-emerald-600');
+            isAnswering = false;
+        }
+
+        function nextQuestion() {
+            currentIndex++;
+            if (currentIndex < questions.length) {
+                showQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('game-screen').classList.add('hidden');
+            document.getElementById('result-screen').classList.remove('hidden');
+            const per = Math.round((score / questions.length) * 100);
+            document.getElementById('final-percentage').textContent = `\${per}%`;
+            document.getElementById('final-score-text').textContent = `答對 \${score} 題 / 共 \${questions.length} 題`;
+            
+            const list = document.getElementById('wrong-list');
+            const sec = document.getElementById('wrong-answers-section');
+            list.innerHTML = '';
+            if (wrongAnswers.length > 0) {
+                sec.classList.remove('hidden');
+                wrongAnswers.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td class="py-4 px-2 font-black text-slate-700">\${item.base}</td><td class="py-4 px-2 text-slate-400 font-bold text-xs text-right">\${item.past} / \${item.past_participle}</td>`;
+                    list.appendChild(row);
+                });
+            } else {
+                sec.classList.add('hidden');
+            }
+        }
+
+        function copyMissedVerbs() {
+            const text = wrongAnswers.map(v => v.base).join(' ');
+            const dummy = document.createElement("textarea");
+            document.body.appendChild(dummy);
+            dummy.value = text;
+            dummy.select();
+            document.execCommand("copy");
+            document.body.removeChild(dummy);
+            const t = document.getElementById('toast');
+            t.style.opacity = '1';
+            setTimeout(() => { t.style.opacity = '0'; }, 2000);
+        }
+
+        // --- 鍵盤監聽核心 ---
+
+        // 1. 在第一個輸入框按 Enter：跳到下一個框
+        document.getElementById('input-past').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // 防止預設行為
+                document.getElementById('input-pp').focus();
+            }
+        });
+
+        // 2. 在第二個輸入框按 Enter：觸發 handleMainAction (提交 或 下一題)
+        document.getElementById('input-pp').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleMainAction();
+            }
+        });
+
+        // 3. 全域 Enter：當焦點不在輸入框時，也能按 Enter 繼續
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const gameVisible = !document.getElementById('game-screen').classList.contains('hidden');
+                const focusOnP = document.activeElement.id === 'input-past';
+                const focusOnPP = document.activeElement.id === 'input-pp';
+                
+                // 只有當不在第一個框（因為第一個框要負責跳轉）且遊戲正在進行時
+                if (gameVisible && !focusOnP && !focusOnPP) {
+                    handleMainAction();
+                }
+            }
+        });
+    </script>
+</body>
+</html>
